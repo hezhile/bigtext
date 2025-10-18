@@ -233,6 +233,13 @@
             anim.play(); // 直接播放，无需判断
           } catch (e) {}
 
+          // 为最后一个字符添加动画结束事件监听，实现循环播放
+          if (i === chars.length - 1) {
+            anim.onfinish = () => {
+              setTextAndAnimate(str);
+            };
+          }
+
           // 暂停/恢复支持
           if (!isPlaying) {
             anim.pause();
