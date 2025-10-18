@@ -160,96 +160,115 @@
       function setTextAndAnimate(str) {
         stopAnimation();
         currentText = str;
-        textEl.textContent = str;
 
-        // 字号尽量占满视口高度的 85%
-        const vh = Math.max(document.documentElement.clientHeight, window.innerHeight || 0);
-        const desiredFontSize = Math.floor(vh * 0.85);
-        textEl.style.fontSize = desiredFontSize + 'px';
-        textEl.style.padding = '0 12px';
+        // 根据设备方向决定字体大小基准
+        const vw = document.documentElement.clientWidth;
+        const vh = document.documentElement.clientHeight;
+        const isPortrait = vh > vw;
+        const fontSize = isPortrait
+          ? Math.floor(vw * 0.85)
+          : Math.floor(vh * 0.85);
 
-        requestAnimationFrame(() => {
-          const textW = textEl.scrollWidth;
-          const textH = textEl.scrollHeight;
-          const contW = display.clientWidth;
-          const contH = display.clientHeight;
+        // 清空 display，准备逐字符渲染
+        display.innerHTML = '';
+        const chars = str.split('');
 
-          // 根据设备方向决定滚动方式
-          const isPortrait = window.innerHeight > window.innerWidth;
+        chars.forEach((ch, i) => {
+          const el = document.createElement('div');
+          el.textContent = ch;
+          Object.assign(el.style, {
+            position: 'absolute',
+            fontSize: fontSize + 'px',
+            lineHeight: '1',
+            color: '#fff',
+            background: 'transparent',
+            textAlign: 'center',
+            padding: '0',
+            boxSizing: 'content-box',
+            willChange: 'transform'
+          });
+
           if (isPortrait) {
-            startVerticalScroll(textH, contH);
+            // 竖屏：字符水平居中，垂直方向从底部向上错位
+            el.style.left = '50%';
+            el.style.transform = 'translateX(-50%)';
+            const offset = fontSize * i;
+            el.style.top = `${display.clientHeight + offset}px`;
           } else {
-            startHorizontalMarquee(textW, contW);
+            // 横屏：字符垂直居中，水平方向从右侧向左错位
+            el.style.top = '50%';
+            el.style.transform = 'translateY(-50%)';
+            const offset = fontSize * i;
+            el.style.right = `${display.clientWidth + offset}px`;
+          }
+
+          display.appendChild(el);
+
+          // 计算动画距离与时长
+          const distance = isPortrait
+            ? display.clientHeight + fontSize * (chars.length)
+            : display.clientWidth + fontSize * (chars.length);
+          const duration = isPortrait
+            ? Math.min(50000, Math.max(6000, Math.round(distance * 10)))
+            : Math.min(60000, Math.max(8000, Math.round(distance * 14)));
+
+          // 动画：竖屏向上，横屏向左
+          const keyframes = isPortrait
+            ? [
+                { transform: `translateX(-50%) translateY(0)` },
+                { transform: `translateX(-50%) translateY(-${distance}px)` }
+              ]
+            : [
+                { transform: `translateY(-50%) translateX(0)` },
+                { transform: `translateY(-50%) translateX(-${distance}px)` }
+              ];
+
+          const anim = el.animate(keyframes, {
+            duration,
+            easing: 'linear',
+            fill: 'forwards'
+          });
+
+          // 暂停/恢复支持
+          if (!isPlaying) {
+            anim.pause();
           }
         });
       }
 
-      // 横向走马灯（更慢）
-      function startHorizontalMarquee(textW, contW) {
-        const fromX = contW;
-        const toX = -textW;
-        const distance = fromX - toX;
-        // 每像素时长提高，整体更慢；限制最大/最小时长
-        const duration = Math.min(60000, Math.max(8000, Math.round(distance * 14)));
-        anim = textEl.animate([
-          { transform: `translateX(${fromX}px)` },
-          { transform: `translateX(${toX}px)` }
-        ], {
-          duration,
-          iterations: 1,
-          easing: 'linear'
-        });
-        anim.play();
-        isPlaying = true;
-        anim.onfinish = () => {
-          setTimeout(() => {
-            startHorizontalMarquee(textW, contW);
-          }, 1000);
-        };
-      }
-
-      // 纵向滚动（更慢）
-      function startVerticalScroll(textH, contH) {
-        const fromY = contH;
-        const toY = -textH;
-        const distance = fromY - toY;
-        const duration = Math.min(50000, Math.max(6000, Math.round(distance * 10)));
-        anim = textEl.animate([
-          { transform: `translateY(${fromY}px)` },
-          { transform: `translateY(${toY}px)` }
-        ], {
-          duration,
-          iterations: 1,
-          easing: 'linear'
-        });
-        anim.play();
-        isPlaying = true;
-        anim.onfinish = () => {
-          setTimeout(() => {
-            startVerticalScroll(textH, contH);
-          }, 1000);
-        };
-      }
 
       function stopAnimation() {
-        if (anim) {
-          try { anim.cancel(); } catch (e) {}
-          anim = null;
-          isPlaying = false;
-        }
+        // 遍历所有字符元素，取消动画
+        const charEls = display.querySelectorAll('div');
+        charEls.forEach(el => {
+          const anim = el.getAnimations()[0];
+          if (anim) {
+            try { anim.cancel(); } catch (e) {}
+          }
+        });
+        isPlaying = false;
       }
 
       function pauseAnimation() {
-        if (anim && isPlaying) {
-          try { anim.pause(); } catch (e) {}
-          isPlaying = false;
-        }
+        const charEls = display.querySelectorAll('div');
+        charEls.forEach(el => {
+          const anim = el.getAnimations()[0];
+          if (anim && isPlaying) {
+            try { anim.pause(); } catch (e) {}
+          }
+        });
+        isPlaying = false;
       }
+
       function resumeAnimation() {
-        if (anim && !isPlaying) {
-          try { anim.play(); } catch (e) {}
-          isPlaying = true;
-        }
+        const charEls = display.querySelectorAll('div');
+        charEls.forEach(el => {
+          const anim = el.getAnimations()[0];
+          if (anim && !isPlaying) {
+            try { anim.play(); } catch (e) {}
+          }
+        });
+        isPlaying = true;
       }
 
       function onBodyTap(e) {
@@ -316,6 +335,7 @@
       // 方向处理
       function applyRotation(angle) {
         viewport.style.transform = `rotate(${-angle}deg)`;
+        overlay.style.transform = `rotate(${-angle}deg)`;
       }
 
       function handleOrientationChange() {
