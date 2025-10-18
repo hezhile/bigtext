@@ -160,13 +160,14 @@
         isPlaying = true; // 提前置为播放状态，确保新动画正常启动
         currentText = str;
 
-        // 根据设备方向决定字体大小基准
-        const vw = document.documentElement.clientWidth;
-        const vh = document.documentElement.clientHeight;
-        const isPortrait = vh > vw;
+        // 获取旋转后的实际可视宽高
+        const rect = viewport.getBoundingClientRect();
+        const visualWidth = rect.width;
+        const visualHeight = rect.height;
+        const isPortrait = visualHeight > visualWidth;
         const fontSize = isPortrait
-          ? Math.floor(vw * 0.85)
-          : Math.floor(vh * 0.85);
+          ? Math.floor(visualWidth * 0.85)
+          : Math.floor(visualHeight * 0.85);
 
         // 清空 display，准备逐字符渲染
         display.innerHTML = '';
@@ -192,21 +193,21 @@
             el.style.left = '50%';
             el.style.transform = 'translateX(-50%)';
             const offset = fontSize * i;
-            el.style.top = `${display.clientHeight + offset}px`;
+            el.style.top = `${visualHeight + offset}px`;
           } else {
             // 横屏：字符垂直居中，水平方向从右侧向左错位
             el.style.top = '50%';
             el.style.transform = 'translateY(-50%)';
             const offset = fontSize * i;
-            el.style.left = `${display.clientWidth + offset}px`;
+            el.style.left = `${visualWidth + offset}px`;
           }
 
           display.appendChild(el);
 
           // 计算动画距离与时长
           const distance = isPortrait
-            ? display.clientHeight + fontSize * (chars.length)
-            : display.clientWidth + fontSize * (chars.length);
+            ? visualHeight + fontSize * (chars.length)
+            : visualWidth + fontSize * (chars.length);
           const duration = isPortrait
             ? Math.min(25000, Math.max(3000, Math.round(distance * 5)))
             : Math.min(30000, Math.max(4000, Math.round(distance * 7)));
