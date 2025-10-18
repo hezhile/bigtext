@@ -159,6 +159,7 @@
 
       function setTextAndAnimate(str) {
         stopAnimation();
+        isPlaying = true; // 提前置为播放状态，确保新动画正常启动
         currentText = str;
 
         // 根据设备方向决定字体大小基准
@@ -229,8 +230,7 @@
             fill: 'forwards'
           });
           try {
-            if (isplaying) anim.play();
-            else anim.pause();
+            anim.play(); // 直接播放，无需判断
           } catch (e) {}
 
           // 暂停/恢复支持
@@ -238,7 +238,6 @@
             anim.pause();
           }
         });
-        isPlaying = true;
       }
 
 
@@ -340,7 +339,6 @@
       // 方向处理
       function applyRotation(angle) {
         viewport.style.transform = `rotate(${-angle}deg)`;
-        overlay.style.transform = `rotate(${-angle}deg)`;
       }
 
       function handleOrientationChange() {
