@@ -234,6 +234,7 @@
             anim.pause();
           }
         });
+        isPlaying = true;
       }
 
 
@@ -246,7 +247,7 @@
             try { anim.cancel(); } catch (e) {}
           }
         });
-        isPlaying = false;
+        //isPlaying = false;
       }
 
       function pauseAnimation() {
