@@ -160,7 +160,8 @@
 
       let anim = null;
       let isPlaying = true;
-      let currentText = 'hello';
+      const saved = localStorage.getItem('marqueeText');
+      let currentText = saved || 'hello';
 
       function setTextAndAnimate(str) {
         stopAnimation();
@@ -325,6 +326,7 @@
           return;
         }
         msg.textContent = '';
+        localStorage.setItem('marqueeText', v.normalized);
         closeOverlay();
         setTextAndAnimate(v.normalized);
       });
