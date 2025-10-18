@@ -208,8 +208,8 @@
             ? display.clientHeight + fontSize * (chars.length)
             : display.clientWidth + fontSize * (chars.length);
           const duration = isPortrait
-            ? Math.min(50000, Math.max(6000, Math.round(distance * 10)))
-            : Math.min(60000, Math.max(8000, Math.round(distance * 14)));
+            ? Math.min(25000, Math.max(3000, Math.round(distance * 5)))
+            : Math.min(30000, Math.max(4000, Math.round(distance * 7)));
 
           // 动画：竖屏向上，横屏向左
           const keyframes = isPortrait
@@ -343,8 +343,8 @@
 
       // 方向处理
       function applyRotation(angle) {
-        viewport.style.transform = `rotate(${-angle}deg)`;
-        viewport.style.webkitTransform = `rotate(${-angle}deg)`;
+        viewport.style.transform = `rotate(${angle}deg)`;
+        viewport.style.webkitTransform = `rotate(${angle}deg)`;
       }
 
       function handleOrientationChange() {
