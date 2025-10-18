@@ -351,32 +351,43 @@
 
       // 方向处理
       function applyRotation(angle) {
+        // 不旋转 viewport，或仅保持 translate(-50%,-50%)
+        viewport.style.transform = 'translate(-50%,-50%)';
+        viewport.style.webkitTransform = 'translate(-50%,-50%)';
         // 把 translate(-50%,-50%) 保留在 transform 中，确保旋转后容器仍然居中
-        const t = `translate(-50%,-50%) rotate(${angle}deg)`;
-        viewport.style.transform = t;
-        viewport.style.webkitTransform = t;
+        //const t = `translate(-50%,-50%) rotate(${angle}deg)`;
+        //viewport.style.transform = t;
+        //viewport.style.webkitTransform = t;
         //viewport.style.transform = `rotate(${angle}deg)`;
         //viewport.style.webkitTransform = `rotate(${angle}deg)`;
       }
 
       function handleOrientationChange() {
-        let angle = 0;
+        const vw = window.innerWidth;
+        const vh = window.innerHeight;
+        viewport.style.width = vw + 'px';
+        viewport.style.height = vh + 'px';
+        // 不旋转 viewport
+        applyRotation(0);
+        // 等一帧再重建动画，确保尺寸生效
+        requestAnimationFrame(() => setTextAndAnimate(currentText));
+        //let angle = 0;
         // iOS Safari 优先使用 window.orientation
-        if (typeof window.orientation === 'number') {
+        /* if (typeof window.orientation === 'number') {
           angle = window.orientation;
         } else if (screen.orientation && typeof screen.orientation.angle === 'number') {
           angle = screen.orientation.angle;
         }
-        angle = ((angle % 360) + 360) % 360;
+        angle = ((angle % 360) + 360) % 360; */
         // 先设置宽高，再 applyRotation（因为后续动画按 getBoundingClientRect 读取）
-        const vw = window.innerWidth;
-        const vh = window.innerHeight;
+        /* const vw = window.innerWidth;
+        const vh = window.innerHeight; */
         
         
         // 动态调整viewport宽高以适应横屏
         //const vw = document.documentElement.clientWidth;
         //const vh = document.documentElement.clientHeight;
-        if (angle === 90 || angle === 270) {
+      /*   if (angle === 90 || angle === 270) {
            // 横屏时交换宽高（容器内部坐标系保持竖直）
           viewport.style.width = vh + 'px';
           viewport.style.height = vw + 'px';
@@ -386,7 +397,7 @@
         }
         applyRotation(angle);
         // 重启动画以适应新的方向
-        setTextAndAnimate(currentText);
+        setTextAndAnimate(currentText); */
       }
 
       function handleDeviceOrientationFallback(e) {
