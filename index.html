@@ -19,8 +19,6 @@
     }
 
     #viewport {
-      width: 100vw;
-      height: 100vh;
       position: relative;
       transform-origin: center center;
       display: flex;
@@ -359,6 +357,18 @@
         }
         angle = ((angle % 360) + 360) % 360;
         applyRotation(angle);
+        
+        // 动态调整viewport宽高以适应横屏
+        const vw = document.documentElement.clientWidth;
+        const vh = document.documentElement.clientHeight;
+        if (angle === 90 || angle === 270) {
+          viewport.style.width = vh + 'px';
+          viewport.style.height = vw + 'px';
+        } else {
+          viewport.style.width = vw + 'px';
+          viewport.style.height = vh + 'px';
+        }
+        
         // 重启动画以适应新的方向
         setTextAndAnimate(currentText);
       }
