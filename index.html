@@ -346,14 +346,16 @@
       // 方向处理
       function applyRotation(angle) {
         viewport.style.transform = `rotate(${-angle}deg)`;
+        viewport.style.webkitTransform = `rotate(${-angle}deg)`;
       }
 
       function handleOrientationChange() {
         let angle = 0;
-        if (screen.orientation && typeof screen.orientation.angle === 'number') {
-          angle = screen.orientation.angle;
-        } else if (typeof window.orientation === 'number') {
+        // iOS Safari 优先使用 window.orientation
+        if (typeof window.orientation === 'number') {
           angle = window.orientation;
+        } else if (screen.orientation && typeof screen.orientation.angle === 'number') {
+          angle = screen.orientation.angle;
         }
         angle = ((angle % 360) + 360) % 360;
         applyRotation(angle);
@@ -375,8 +377,7 @@
       }
 
       function init() {
-        setTextAndAnimate(currentText);
-
+        // 先检测方向，再渲染文字，确保首次渲染方向正确
         if ('onorientationchange' in window) {
           window.addEventListener('orientationchange', handleOrientationChange);
         }
