@@ -228,6 +228,10 @@
             easing: 'linear',
             fill: 'forwards'
           });
+          try {
+            if (isplaying) anim.play();
+            else anim.pause();
+          } catch (e) {}
 
           // 暂停/恢复支持
           if (!isPlaying) {
