@@ -19,12 +19,19 @@
     }
 
     #viewport {
-      position: relative;
+      /* 关键：改为 fixed，并用 left/top + translate 居中 */
+      position: fixed;
+      left: 50%;
+      top: 50%;
       transform-origin: center center;
+      /* 初始先居中但不旋转（JS 会设置具体 transform） */
+      transform: translate(-50%, -50%) rotate(0deg);
       display: flex;
       align-items: center;
       justify-content: center;
       overflow: hidden;
+      /* 可选：确保不被其它元素影响 */
+      z-index: 1;
     }
 
     #display {
@@ -344,8 +351,12 @@
 
       // 方向处理
       function applyRotation(angle) {
-        viewport.style.transform = `rotate(${angle}deg)`;
-        viewport.style.webkitTransform = `rotate(${angle}deg)`;
+        // 把 translate(-50%,-50%) 保留在 transform 中，确保旋转后容器仍然居中
+        const t = `translate(-50%,-50%) rotate(${angle}deg)`;
+        viewport.style.transform = t;
+        viewport.style.webkitTransform = t;
+        //viewport.style.transform = `rotate(${angle}deg)`;
+        //viewport.style.webkitTransform = `rotate(${angle}deg)`;
       }
 
       function handleOrientationChange() {
@@ -357,19 +368,23 @@
           angle = screen.orientation.angle;
         }
         angle = ((angle % 360) + 360) % 360;
-        applyRotation(angle);
+        // 先设置宽高，再 applyRotation（因为后续动画按 getBoundingClientRect 读取）
+        const vw = window.innerWidth;
+        const vh = window.innerHeight;
+        
         
         // 动态调整viewport宽高以适应横屏
-        const vw = document.documentElement.clientWidth;
-        const vh = document.documentElement.clientHeight;
+        //const vw = document.documentElement.clientWidth;
+        //const vh = document.documentElement.clientHeight;
         if (angle === 90 || angle === 270) {
+           // 横屏时交换宽高（容器内部坐标系保持竖直）
           viewport.style.width = vh + 'px';
           viewport.style.height = vw + 'px';
         } else {
           viewport.style.width = vw + 'px';
           viewport.style.height = vh + 'px';
         }
-        
+        applyRotation(angle);
         // 重启动画以适应新的方向
         setTextAndAnimate(currentText);
       }
