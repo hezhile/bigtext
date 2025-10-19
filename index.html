@@ -16,7 +16,8 @@
       user-select: none;
       touch-action: manipulation;
       overflow: hidden;
-      font-family: "Helvetica Neue", Arial, sans-serif;
+      /* add common emoji-capable fonts so emoji render correctly */
+      font-family: "Helvetica Neue", Arial, "Noto Color Emoji", "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", sans-serif;
     }
 
     #viewport {
@@ -132,8 +133,9 @@
 
     <div id="overlay" aria-hidden="true">
       <div id="panel" role="dialog" aria-modal="true">
-        <label for="inputText">请输入（最多一行40个字符）：</label>
-        <input id="inputText" type="text" maxlength="40" />
+  <label for="inputText">请输入（最多一行40个字符）：</label>
+  <!-- remove maxlength to avoid splitting emoji in the middle; validation uses grapheme clusters -->
+  <input id="inputText" type="text" />
         <div id="msg" style="color:#f66;font-size:13px;margin-top:6px;height:18px;"></div>
         <div id="buttons">
           <button id="btnCancel" class="btn">取消</button>
@@ -161,6 +163,24 @@
       const saved = localStorage.getItem('marqueeText');
       let currentText = saved || 'Love & Peace';
 
+      // Grapheme cluster splitter: uses Intl.Segmenter when available to
+      // correctly count and split user-perceived characters (emoji, flags,
+      // skin-tone modifiers, combined glyphs). Falls back to Array.from.
+      const splitGraphemes = (str) => {
+        if (!str) return [];
+        if (typeof Intl !== 'undefined' && typeof Intl.Segmenter === 'function') {
+          try {
+            const seg = new Intl.Segmenter(undefined, { granularity: 'grapheme' });
+            return Array.from(seg.segment(str), s => s.segment);
+          } catch (e) {
+            // fallback below
+          }
+        }
+        // Array.from usually respects astral code points and surrogate pairs
+        // which is a reasonable fallback for most cases.
+        return Array.from(str);
+      };
+
       /**
        * 设置并启动文字滚动动画
        * @param {string} str - 要显示的文字
@@ -180,8 +200,9 @@
           : Math.floor(visualHeight * 0.85);
 
         // 清空 display，准备逐字符渲染
-        display.innerHTML = '';
-        const chars = str.split('');
+          display.innerHTML = '';
+          // 使用 grapheme cluster 切分（确保 emoji/复合字符被当作单个 "字符"）
+          const chars = splitGraphemes(str);
 
         chars.forEach((ch, i) => {
           const el = document.createElement('div');
@@ -337,7 +358,9 @@
         s = s.replace(/^\s+|\s+$/g, '');
         if (s.length === 0) return { ok:false, reason: '内容不能为空' };
         if (/[\r\n]/.test(s)) return { ok:false, reason: '不允许换行' };
-        if (s.length > 40) return { ok:false, reason: '最多 40 个字符' };
+        // 使用 grapheme cluster 计算长度，防止 emoji 被错误计数
+        const graphemes = splitGraphemes(s);
+        if (graphemes.length > 40) return { ok:false, reason: '最多 40 个字符' };
         // 允许所有可见字符（包括中文、英文、标点）。若需进一步限制可在此扩展。
         return { ok:true, normalized: s };
       }
