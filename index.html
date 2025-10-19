@@ -1,9 +1,10 @@
 <!doctype html>
+<!-- 走马灯：全屏文字滚动展示组件，支持横竖屏自适应、点击编辑、本地存储 -->
 <html lang="zh-CN">
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no" />
-  <title>走马灯</title>
+  <title>大字灯牌</title>
   <style>
     html,body {
       height: 100%;
@@ -19,18 +20,15 @@
     }
 
     #viewport {
-      /* 关键：改为 fixed，并用 left/top + translate 居中 */
       position: fixed;
       left: 50%;
       top: 50%;
       transform-origin: center center;
-      /* 初始先居中但不旋转（JS 会设置具体 transform） */
       transform: translate(-50%, -50%) rotate(0deg);
       display: flex;
       align-items: center;
       justify-content: center;
       overflow: hidden;
-      /* 可选：确保不被其它元素影响 */
       z-index: 1;
     }
 
@@ -134,7 +132,7 @@
 
     <div id="overlay" aria-hidden="true">
       <div id="panel" role="dialog" aria-modal="true">
-        <label for="inputText">请输入（最多 40 个字符，支持中英及标点，不允许换行）：</label>
+        <label for="inputText">请输入（最多一行40个字符）：</label>
         <input id="inputText" type="text" maxlength="40" />
         <div id="msg" style="color:#f66;font-size:13px;margin-top:6px;height:18px;"></div>
         <div id="buttons">
@@ -161,11 +159,15 @@
       let anim = null;
       let isPlaying = true;
       const saved = localStorage.getItem('marqueeText');
-      let currentText = saved || 'hello';
+      let currentText = saved || 'Love & Peace';
 
+      /**
+       * 设置并启动文字滚动动画
+       * @param {string} str - 要显示的文字
+       */
       function setTextAndAnimate(str) {
         stopAnimation();
-        isPlaying = true; // 提前置为播放状态，确保新动画正常启动
+        isPlaying = true;
         currentText = str;
 
         // 获取旋转后的实际可视宽高
@@ -237,7 +239,7 @@
             fill: 'forwards'
           });
           try {
-            anim.play(); // 直接播放，无需判断
+            anim.play();
           } catch (e) {}
 
           // 为最后一个字符添加动画结束事件监听，实现循环播放
@@ -255,6 +257,9 @@
       }
 
 
+      /**
+       * 停止所有字符动画
+       */
       function stopAnimation() {
         // 遍历所有字符元素，取消动画
         const charEls = display.querySelectorAll('div');
@@ -264,9 +269,11 @@
             try { anim.cancel(); } catch (e) {}
           }
         });
-        //isPlaying = false;
       }
 
+      /**
+       * 暂停当前动画
+       */
       function pauseAnimation() {
         const charEls = display.querySelectorAll('div');
         charEls.forEach(el => {
@@ -278,6 +285,9 @@
         isPlaying = false;
       }
 
+      /**
+       * 恢复当前动画
+       */
       function resumeAnimation() {
         const charEls = display.querySelectorAll('div');
         charEls.forEach(el => {
@@ -289,12 +299,19 @@
         isPlaying = true;
       }
 
+      /**
+       * 处理屏幕点击事件，暂停动画并打开编辑面板
+       * @param {Event} e - 点击事件
+       */
       function onBodyTap(e) {
         if (overlay.style.display === 'flex') return;
         pauseAnimation();
         openOverlay();
       }
 
+      /**
+       * 打开编辑面板
+       */
       function openOverlay() {
         input.value = currentText;
         msg.textContent = '';
@@ -303,12 +320,19 @@
         input.focus();
         setTimeout(()=> input.setSelectionRange(input.value.length, input.value.length), 300);
       }
+      /**
+       * 关闭编辑面板
+       */
       function closeOverlay() {
         overlay.style.display = 'none';
         overlay.setAttribute('aria-hidden','true');
       }
 
-      // 验证：允许混合中英与常见标点，禁止换行，最多 40 个字符（按字符计数）
+      /**
+       * 验证用户输入
+       * @param {string} s - 输入字符串
+       * @returns {Object} - 验证结果 {ok: boolean, reason?: string, normalized?: string}
+       */
       function validateInput(s) {
         s = s.replace(/^\s+|\s+$/g, '');
         if (s.length === 0) return { ok:false, reason: '内容不能为空' };
@@ -352,18 +376,19 @@
       }, {passive: false});
 
       // 方向处理
+      /**
+       * 应用旋转角度（当前版本不旋转，仅居中）
+       * @param {number} angle - 旋转角度
+       */
       function applyRotation(angle) {
         // 不旋转 viewport，或仅保持 translate(-50%,-50%)
         viewport.style.transform = 'translate(-50%,-50%)';
         viewport.style.webkitTransform = 'translate(-50%,-50%)';
-        // 把 translate(-50%,-50%) 保留在 transform 中，确保旋转后容器仍然居中
-        //const t = `translate(-50%,-50%) rotate(${angle}deg)`;
-        //viewport.style.transform = t;
-        //viewport.style.webkitTransform = t;
-        //viewport.style.transform = `rotate(${angle}deg)`;
-        //viewport.style.webkitTransform = `rotate(${angle}deg)`;
       }
 
+      /**
+       * 处理屏幕方向变化事件
+       */
       function handleOrientationChange() {
         const vw = window.innerWidth;
         const vh = window.innerHeight;
@@ -373,35 +398,12 @@
         applyRotation(0);
         // 等一帧再重建动画，确保尺寸生效
         requestAnimationFrame(() => setTextAndAnimate(currentText));
-        //let angle = 0;
-        // iOS Safari 优先使用 window.orientation
-        /* if (typeof window.orientation === 'number') {
-          angle = window.orientation;
-        } else if (screen.orientation && typeof screen.orientation.angle === 'number') {
-          angle = screen.orientation.angle;
-        }
-        angle = ((angle % 360) + 360) % 360; */
-        // 先设置宽高，再 applyRotation（因为后续动画按 getBoundingClientRect 读取）
-        /* const vw = window.innerWidth;
-        const vh = window.innerHeight; */
-        
-        
-        // 动态调整viewport宽高以适应横屏
-        //const vw = document.documentElement.clientWidth;
-        //const vh = document.documentElement.clientHeight;
-      /*   if (angle === 90 || angle === 270) {
-           // 横屏时交换宽高（容器内部坐标系保持竖直）
-          viewport.style.width = vh + 'px';
-          viewport.style.height = vw + 'px';
-        } else {
-          viewport.style.width = vw + 'px';
-          viewport.style.height = vh + 'px';
-        }
-        applyRotation(angle);
-        // 重启动画以适应新的方向
-        setTextAndAnimate(currentText); */
       }
 
+      /**
+       * 设备方向变化回退处理（用于不支持标准 orientation API 的设备）
+       * @param {DeviceOrientationEvent} e - 设备方向事件
+       */
       function handleDeviceOrientationFallback(e) {
         if (typeof screen.orientation !== 'undefined' || typeof window.orientation === 'number') return;
         const gamma = e.gamma;
@@ -415,6 +417,9 @@
         }
       }
 
+      /**
+       * 初始化：绑定事件监听器，启动动画
+       */
       function init() {
         // 先检测方向，再渲染文字，确保首次渲染方向正确
         if ('onorientationchange' in window) {
