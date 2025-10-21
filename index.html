@@ -295,16 +295,17 @@
 
 
       /**
-       * 停止所有字符动画
+       * 停止所有字符动画并移除元素
        */
       function stopAnimation() {
-        // 遍历所有字符元素，取消动画
+        // 遍历所有字符元素，取消动画并移除DOM元素
         const charEls = display.querySelectorAll('div');
         charEls.forEach(el => {
           const anim = el.getAnimations()[0];
           if (anim) {
             try { anim.cancel(); } catch (e) {}
           }
+          el.remove();
         });
       }
 
