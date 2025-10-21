@@ -291,9 +291,7 @@
             const startPos = isPortrait
               ? visualHeight + fontSize * i
               : visualWidth + fontSize * i;
-            const targetCenter = (isPortrait ? visualHeight : visualWidth) / 2;
-            const startCenter = startPos + fontSize / 2;
-            const leadDistance = Math.max(0, startCenter - targetCenter);
+            const leadDistance = Math.max(0, startPos);
             let triggerProgress = leadDistance / distance;
             if (!Number.isFinite(triggerProgress)) {
               triggerProgress = 1;
