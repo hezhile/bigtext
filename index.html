@@ -182,11 +182,10 @@
       };
 
       /**
-       * 设置并启动文字滚动动画
+       * 启动一轮字符动画（不清除已有元素）
        * @param {string} str - 要显示的文字
        */
-      function setTextAndAnimate(str) {
-        stopAnimation();
+      function startCycle(str) {
         isPlaying = true;
         currentText = str;
 
@@ -199,10 +198,8 @@
           ? Math.floor(visualWidth * 0.85)
           : Math.floor(visualHeight * 0.85);
 
-        // 清空 display，准备逐字符渲染
-          display.innerHTML = '';
-          // 使用 grapheme cluster 切分（确保 emoji/复合字符被当作单个 "字符"）
-          const chars = splitGraphemes(str);
+        // 使用 grapheme cluster 切分（确保 emoji/复合字符被当作单个 "字符"）
+        const chars = splitGraphemes(str);
 
         chars.forEach((ch, i) => {
           const el = document.createElement('div');
@@ -270,8 +267,14 @@
             // 计算触发时机：当最后一个字符移动至半屏位置时
             const triggerTime = duration * ((distance - halfDistance) / distance);
             setTimeout(() => {
-              setTextAndAnimate(str);
+              startCycle(str);
             }, triggerTime);
+
+            // 动画完全结束时，清理上一轮残留元素并重新启动
+            anim.onfinish = () => {
+              stopAnimation();
+              startCycle(str);
+            };
           }
 
           // 暂停/恢复支持
@@ -279,6 +282,15 @@
             anim.pause();
           }
         });
+      }
+
+      /**
+       * 设置并启动文字滚动动画（首次调用时清理旧元素）
+       * @param {string} str - 要显示的文字
+       */
+      function setTextAndAnimate(str) {
+        stopAnimation();
+        startCycle(str);
       }
 
 
