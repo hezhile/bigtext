@@ -163,6 +163,30 @@
       const saved = localStorage.getItem('marqueeText');
       let currentText = saved || 'Love & Peace';
 
+      const activeTimers = new Set();
+      let cycleCounter = 0;
+
+      function scheduleNextCycle(str, delay) {
+        const timer = setTimeout(() => {
+          activeTimers.delete(timer);
+          startCycle(str);
+        }, Math.max(0, delay));
+        activeTimers.add(timer);
+      }
+
+      function cleanupCycle(cycleId) {
+        const nodes = display.querySelectorAll(`[data-cycle-id="${cycleId}"]`);
+        nodes.forEach(node => {
+          const animations = node.getAnimations();
+          if (animations && animations.length) {
+            animations.forEach(anim => {
+              try { anim.cancel(); } catch (e) {}
+            });
+          }
+          node.remove();
+        });
+      }
+
       // Grapheme cluster splitter: uses Intl.Segmenter when available to
       // correctly count and split user-perceived characters (emoji, flags,
       // skin-tone modifiers, combined glyphs). Falls back to Array.from.
@@ -200,10 +224,12 @@
 
         // 使用 grapheme cluster 切分（确保 emoji/复合字符被当作单个 "字符"）
         const chars = splitGraphemes(str);
+        const cycleId = `cycle-${Date.now()}-${cycleCounter++}`;
 
         chars.forEach((ch, i) => {
           const el = document.createElement('div');
           el.textContent = ch;
+          el.dataset.cycleId = cycleId;
           Object.assign(el.style, {
             position: 'absolute',
             fontSize: fontSize + 'px',
@@ -262,18 +288,24 @@
 
           // 为最后一个字符添加动画结束事件监听，实现循环播放
           if (i === chars.length - 1) {
-            // 计算半屏距离，用于提前触发下一轮动画
-            const halfDistance = isPortrait ? visualHeight / 2 : visualWidth / 2;
-            // 计算触发时机：当最后一个字符移动至半屏位置时
-            const triggerTime = duration * ((distance - halfDistance) / distance);
-            setTimeout(() => {
-              startCycle(str);
-            }, triggerTime);
+            const startPos = isPortrait
+              ? visualHeight + fontSize * i
+              : visualWidth + fontSize * i;
+            const targetCenter = (isPortrait ? visualHeight : visualWidth) / 2;
+            const startCenter = startPos + fontSize / 2;
+            const leadDistance = Math.max(0, startCenter - targetCenter);
+            let triggerProgress = leadDistance / distance;
+            if (!Number.isFinite(triggerProgress)) {
+              triggerProgress = 1;
+            }
+            triggerProgress = Math.min(0.999, Math.max(0, triggerProgress));
+            scheduleNextCycle(str, triggerProgress * duration);
 
-            // 动画完全结束时，清理上一轮残留元素并重新启动
             anim.onfinish = () => {
-              stopAnimation();
-              startCycle(str);
+              cleanupCycle(cycleId);
+              if (!display.querySelector('[data-cycle-id]') && activeTimers.size === 0) {
+                startCycle(str);
+              }
             };
           }
 
@@ -298,26 +330,36 @@
        * 停止所有字符动画并移除元素
        */
       function stopAnimation() {
-        // 遍历所有字符元素，取消动画并移除DOM元素
-        const charEls = display.querySelectorAll('div');
+        // 停止所有计时器并清除字符元素
+        activeTimers.forEach(timer => clearTimeout(timer));
+        activeTimers.clear();
+
+        const charEls = display.querySelectorAll('[data-cycle-id]');
         charEls.forEach(el => {
-          const anim = el.getAnimations()[0];
-          if (anim) {
-            try { anim.cancel(); } catch (e) {}
+          const animations = el.getAnimations();
+          if (animations && animations.length) {
+            animations.forEach(anim => {
+              try { anim.cancel(); } catch (e) {}
+            });
           }
           el.remove();
         });
+
+        display.textContent = '';
       }
 
       /**
        * 暂停当前动画
        */
       function pauseAnimation() {
-        const charEls = display.querySelectorAll('div');
+        if (!isPlaying) return;
+        const charEls = display.querySelectorAll('[data-cycle-id]');
         charEls.forEach(el => {
-          const anim = el.getAnimations()[0];
-          if (anim && isPlaying) {
-            try { anim.pause(); } catch (e) {}
+          const animations = el.getAnimations();
+          if (animations && animations.length) {
+            animations.forEach(anim => {
+              try { anim.pause(); } catch (e) {}
+            });
           }
         });
         isPlaying = false;
@@ -327,11 +369,14 @@
        * 恢复当前动画
        */
       function resumeAnimation() {
-        const charEls = display.querySelectorAll('div');
+        if (isPlaying) return;
+        const charEls = display.querySelectorAll('[data-cycle-id]');
         charEls.forEach(el => {
-          const anim = el.getAnimations()[0];
-          if (anim && !isPlaying) {
-            try { anim.play(); } catch (e) {}
+          const animations = el.getAnimations();
+          if (animations && animations.length) {
+            animations.forEach(anim => {
+              try { anim.play(); } catch (e) {}
+            });
           }
         });
         isPlaying = true;
