@@ -166,6 +166,35 @@
       const activeTimers = new Set();
       let cycleCounter = 0;
 
+       // NEW: Screen Wake Lock 逻辑开始
+      let wakeLock = null;
+       // 请求屏幕常亮函数
+      const requestWakeLock = async () => {
+        if ('wakeLock' in navigator) {
+          try {
+            wakeLock = await navigator.wakeLock.request('screen');
+            console.log('Screen Wake Lock active');
+            
+            // 监听锁释放（例如切后台时会自动释放）
+            wakeLock.addEventListener('release', () => {
+              console.log('Screen Wake Lock released');
+            });
+          } catch (err) {
+            console.error(`${err.name}, ${err.message}`);
+          }
+        } else {
+            console.log('Browser does not support Wake Lock API');
+        }
+      };
+
+      // 页面可见性变化监听：用户切后台回来后，需要重新申请锁
+      document.addEventListener('visibilitychange', async () => {
+        if (wakeLock !== null && document.visibilityState === 'visible') {
+          await requestWakeLock();
+        }
+      });
+      // NEW: Screen Wake Lock 逻辑结束
+
       function scheduleNextCycle(str, delay) {
         const timer = setTimeout(() => {
           activeTimers.delete(timer);
@@ -385,6 +414,9 @@
        * @param {Event} e - 点击事件
        */
       function onBodyTap(e) {
+        // NEW: 用户点击任意位置时，尝试激活不锁屏
+        requestWakeLock();
+
         if (overlay.style.display === 'flex') return;
         pauseAnimation();
         openOverlay();
@@ -426,6 +458,9 @@
       }
 
       btnConfirm.addEventListener('click', () => {
+        // NEW: 用户点击确认时，也尝试激活不锁屏（双保险）
+        requestWakeLock();
+
         const val = input.value || '';
         const v = validateInput(val);
         if (!v.ok) {
@@ -504,6 +539,9 @@
        * 初始化：绑定事件监听器，启动动画
        */
       function init() {
+        // 尝试在初始化时请求（注：大多数浏览器会因为没有用户交互而阻止，但值得一试）
+        requestWakeLock();
+        
         // 先检测方向，再渲染文字，确保首次渲染方向正确
         if ('onorientationchange' in window) {
           window.addEventListener('orientationchange', handleOrientationChange);
