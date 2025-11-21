@@ -144,7 +144,7 @@
       </div>
     </div>
 
-    <div id="hint">点击屏幕可编辑/暂停</div>
+    <div id="hint">点击屏幕可编辑/暂停 (点击后将保持屏幕常亮)</div>
   </div>
 
   <script>
@@ -541,7 +541,7 @@
       function init() {
         // 尝试在初始化时请求（注：大多数浏览器会因为没有用户交互而阻止，但值得一试）
         requestWakeLock();
-        
+
         // 先检测方向，再渲染文字，确保首次渲染方向正确
         if ('onorientationchange' in window) {
           window.addEventListener('orientationchange', handleOrientationChange);
